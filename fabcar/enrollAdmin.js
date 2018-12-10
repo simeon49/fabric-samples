@@ -16,8 +16,6 @@ var util = require('util');
 var os = require('os');
 
 var fabric_client = new Fabric_Client();
-var store_path = path.join(__dirname, 'hfc-key-store');
-console.log(' Store path:'+store_path);
 
 async function doEnrollAdmin(crypto_suite) {
     var tlsOptions = {
@@ -25,11 +23,11 @@ async function doEnrollAdmin(crypto_suite) {
         verify: false
     };
     // be sure to change the http to https when the CA is running TLS enabled
-    fabric_ca_client = new Fabric_CA_Client('http://47.104.201.221:7054', tlsOptions, 'ca.example.com', crypto_suite);
+    var fabric_ca_client = new Fabric_CA_Client('http://47.104.201.221:7054', tlsOptions, 'ca.example.com', crypto_suite);
     try {
         var enrollment = await fabric_ca_client.enroll({
             enrollmentID: 'admin',
-            enrollmentSecret: 'adminpw'
+            enrollmentSecret: 'adminpw'     // 必须和 ../basic-network/docker-compose.yml 里的ca配置的相同
         });
         console.log('Successfully enrolled admin user "admin"');
         var user = await fabric_client.createUser({
@@ -49,6 +47,8 @@ async function doEnrollAdmin(crypto_suite) {
 }
 
 async function enrollAdmin() {
+    var store_path = path.join(__dirname, 'hfc-key-store');
+    console.log(' Store path:' + store_path);
     var admin_user;
     try {
         // create the key value store as defined in the fabric-client/config/default.json 'key-value-store' setting
@@ -70,7 +70,6 @@ async function enrollAdmin() {
         if (user_from_store && user_from_store.isEnrolled()) {
             console.log('Successfully loaded admin from persistence');
             admin_user = user_from_store;
-            return;
         } else {
             // need to enroll it with CA server
             admin_user = await doEnrollAdmin(crypto_suite);

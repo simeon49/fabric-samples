@@ -47,13 +47,13 @@ async function registerUser() {
         } else {
             throw new Error('Failed to get admin.... run enrollAdmin.js');
         }
-        // return fabric_ca_client.revoke({
+
+        // FIX: 下面的代码没后效果
+        // var res = await fabric_ca_client.revoke({
         //     enrollmentID: 'user1',
         //     reason: 'lost key!!!!!'
-        // }, admin_user).then(res => {
-        //     console.log(res);
-        //      return fabric_ca_client.register({enrollmentID: 'user1', affiliation: 'org1.department1',role: 'client'}, admin_user);
-        // })
+        // }, admin_user);
+        // console.log(`revoke res: ${JSON.stringify(res)}`);
 
         // at this point we should have the admin user
         // first need to register the user with the CA server
