@@ -18,9 +18,9 @@ var fabric_client = new Fabric_Client();
 
 // setup the fabric network
 var channel = fabric_client.newChannel('mychannel');
-var peer = fabric_client.newPeer('grpc://localhost:7051');
+var peer = fabric_client.newPeer('grpc://47.104.201.221:7051');
 channel.addPeer(peer);
-var order = fabric_client.newOrderer('grpc://localhost:7050')
+var order = fabric_client.newOrderer('grpc://47.104.201.221:7050')
 channel.addOrderer(order);
 
 //
@@ -61,8 +61,8 @@ Fabric_Client.newDefaultKeyValueStore({ path: store_path
 	var request = {
 		//targets: let default to the peer assigned to the client
 		chaincodeId: 'fabcar',
-		fcn: '',
-		args: [''],
+		fcn: 'createCar',
+		args: ['Simeon\'s Company', 'Supper Car', 'black', 'Simeon'],
 		chainId: 'mychannel',
 		txId: tx_id
 	};
