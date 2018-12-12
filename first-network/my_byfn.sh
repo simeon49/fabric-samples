@@ -11,7 +11,7 @@ export CHANNEL_NAME="mychannel"
 
 # ======================== 使用 cryptogen 生成所有的证书 ========================
 # 生成证书
-cryptogen generate --config =./crypto-config.yaml
+cryptogen generate --config=./crypto-config.yaml
 
 # # 生成 docker-compose-e2e.yaml
 # cp docker-compose-e2e-template.yaml docker-compose-e2e.yaml
@@ -26,7 +26,7 @@ cryptogen generate --config =./crypto-config.yaml
 
 # ======================== 使用 configtxgen 生成配置 ========================
 # 生成创世区块 'genesis.block'
-configtxgen -profile TwoOrgsOrdererGenesis -outputBlock ./channel-artifacts/genesis.block
+configtxgen -profile TwoOrgsOrdererGenesis -outputBlock ./channel-artifacts/genesis.block -channelID $CHANNEL_NAME
 
 # 生成通道交易配置 'channel.tx'
 configtxgen -profile TwoOrgsChannel -outputCreateChannelTx ./channel-artifacts/channel.tx -channelID $CHANNEL_NAME
@@ -50,7 +50,7 @@ docker exec -it cli bash
 $ export CHANNEL_NAME="mychannel"
 
 # 创建channel
-$ peer channel create -o orderer.example.com:7050 -c $CHANNEL_NAME -f ./channel-artifacts/channel.tx --tls --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
+$ peer channel create -o orderer.example.com:7050 -c $CHANNEL_NAME -f ./channel-artifacts/channel.tx --tls true --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
 
 ###################### 根据不同的节点声明不同的环境变量 (如: peer0.org1) ######################
 # $ export CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
