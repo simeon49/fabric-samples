@@ -156,7 +156,7 @@ function networkUp() {
   #   generateChannelArtifacts
   # fi
 
-  replacePrivateKey
+  # replacePrivateKey
   generateChannelArtifacts
   if [ "${IF_COUCHDB}" == "couchdb" ]; then
     IMAGE_TAG=$IMAGETAG docker-compose -f $COMPOSE_FILE -f $COMPOSE_FILE_COUCH up -d 2>&1
