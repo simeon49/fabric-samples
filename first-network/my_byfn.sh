@@ -3,62 +3,67 @@
 
 # 指定"crypto-config.yaml" 配置文件所在目录, configtxgen 工具使用该环境变量
 export FABRIC_CFG_PATH=${PWD}
-
-# 当前目录
-export CURRENT_DIR=$PWD
 # 通道名称
 export CHANNEL_NAME="mychannel"
-
-exitIfError() {
-    if [ $? -ne 0 ]; then
-        exit $?
-    fi
-}
 
 # ======================== 使用 cryptogen 生成所有的证书 ========================
 # 生成证书
 cryptogen generate --config=./crypto-config.yaml
-exitIfError
-
-# # 生成 docker-compose-e2e.yaml
-# cp docker-compose-e2e-template.yaml docker-compose-e2e.yaml
-# cd crypto-config/peerOrganizations/org1.example.com/ca/
-# PRIV_KEY=$(ls *_sk)
-# cd "$CURRENT_DIR"
-# sed -i "s/CA1_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
-# cd crypto-config/peerOrganizations/org2.example.com/ca/
-# PRIV_KEY=$(ls *_sk)
-# cd "$CURRENT_DIR"
-# sed -i "s/CA2_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
 
 # ======================== 使用 configtxgen 生成配置 ========================
 # 生成创世区块 'genesis.block'
 # 这么写会使后面创建channel的时候失败!!
 # configtxgen -profile TwoOrgsOrdererGenesis -outputBlock ./channel-artifacts/genesis.block -channelID $CHANNEL_NAME
 configtxgen -profile TwoOrgsOrdererGenesis -outputBlock ./channel-artifacts/genesis.block
-exitIfError
 
 # 生成通道交易配置 'channel.tx'
 configtxgen -profile TwoOrgsChannel -outputCreateChannelTx ./channel-artifacts/channel.tx -channelID $CHANNEL_NAME
-exitIfError
 
 # 生成Org1MSP的锚节点 'Org1MSPanchors.tx'
 configtxgen -profile TwoOrgsChannel -outputAnchorPeersUpdate ./channel-artifacts/Org1MSPanchors.tx -channelID $CHANNEL_NAME -asOrg Org1MSP
-exitIfError
 
 # 生成Org2MSP的锚节点 'Org2MSPanchors.tx'
 configtxgen -profile TwoOrgsChannel -outputAnchorPeersUpdate ./channel-artifacts/Org2MSPanchors.tx -channelID $CHANNEL_NAME -asOrg Org2MSP
-exitIfError
 
 
 # ======================== 启动fabric网络 ========================
-# 启动fabric网络
+################################################################
+# 步骤1: 启动核心服务[order, peer(4个), cli]
+################################################################
 docker-compose -f docker-compose-cli.yaml up -d # 使用goleveldb
-exitIfError
 # docker-compose -f docker-compose-cli.yaml -f docker-compose-couch.yaml up -d # 使用couchdb
 
-# !!!! 使用./byfn.sh down 关闭
+################################################################
+# 步骤2: 启动ca服务(2个), 这样可以使用客户端的SDK 进行restful api 调用 (可选)
+################################################################
+# 生成 docker-compose-e2e.yaml
+createDockerComposeE2e() {
+    # 当前目录
+    export CURRENT_DIR=$PWD
+    cp docker-compose-e2e-template.yaml docker-compose-e2e.yaml
+    cd crypto-config/peerOrganizations/org1.example.com/ca/
+    PRIV_KEY=$(ls *_sk)
+    cd "$CURRENT_DIR"
+    sed -i "s/CA1_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+    cd crypto-config/peerOrganizations/org2.example.com/ca/
+    PRIV_KEY=$(ls *_sk)
+    cd "$CURRENT_DIR"
+    sed -i "s/CA2_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+}
+createDockerComposeE2e
+# 启动fabric网络
+export IMAGE_TAG="1.3.0"
+docker-compose -f docker-compose-e2e.yaml up -d
 
+################################################################
+# 步骤3: 使用couchdb 替代leveldb (可选)
+################################################################
+docker-compose docker-compose-couch.yaml up -d # 使用couchdb
+
+
+# ======================== 关闭网络 ========================
+docker-compose -f docker-compose-cli.yaml -f docker-compose-e2e.yaml -f docker-compose-couch.yaml down
+# 如果需要清空所有数据 参考: ./byfn.sh down  (关闭容器, 删除所有的卷, 删除所有前面步骤生成的配置文件)
 
 
 
@@ -113,16 +118,9 @@ setGlobals() {
     fi
 }
 
-exitIfError() {
-    if [ $? -ne 0 ]; then
-        exit $?
-    fi
-}
-
 # 创建channel
 createChannel() {
     peer channel create -o orderer.example.com:7050 -c $CHANNEL_NAME -f ./channel-artifacts/channel.tx --tls true --cafile $ORDERER_CA
-    exitIfError
 }
 createChannel
 
@@ -132,7 +130,6 @@ joinChannel() {
 	    for peer in 0 1; do
             setGlobals $peer $org
             peer channel join -b $CHANNEL_NAME.block
-            exitIfError
             echo "peer${peer}.org${org} joined channel '$CHANNEL_NAME'"
             sleep 3
             echo
@@ -148,7 +145,6 @@ updateAnchorPeers() {
         setGlobals $peer $org
         # peer channel update -o orderer.example.com:7050 -c $CHANNEL_NAME -f ./channel-artifacts/${CORE_PEER_LOCALMSPID}anchors.tx
         peer channel update -o orderer.example.com:7050 -c $CHANNEL_NAME -f ./channel-artifacts/${CORE_PEER_LOCALMSPID}anchors.tx --tls true --cafile $ORDERER_CA
-        exitIfError
         echo "anchor peers updated for org '$CORE_PEER_LOCALMSPID' on channel '$CHANNEL_NAME'"
         sleep 3
         echo
@@ -166,7 +162,6 @@ installChaincode() {
         VERSION=${3:-1.0}
         peer chaincode install -n mycc -v ${VERSION} -l ${LANGUAGE} -p ${CC_SRC_PATH}
         # peer chaincode install -n mycc -v 1.0 -l node -p /opt/gopath/src/github.com/chaincode/chaincode_example02/node/
-        exitIfError
         echo "chaincode is installed on peer${peer}.org${org}"
         echo
     done
@@ -186,7 +181,6 @@ instantiateChaincode() {
         # peer chaincode instantiate -o orderer.example.com:7050 -C $CHANNEL_NAME -n mycc -l ${LANGUAGE} -v ${VERSION} -c '{"Args":["init","a","100","b","200"]}' -P "AND ('Org1MSP.peer','Org2MSP.peer')"
         peer chaincode instantiate -o orderer.example.com:7050 --tls --cafile $ORDERER_CA -C $CHANNEL_NAME -n mycc -l ${LANGUAGE} -v 1.0 -c '{"Args":["init","a","100","b","200"]}' -P "AND ('Org1MSP.peer','Org2MSP.peer')"
         # peer chaincode instantiate -o orderer.example.com:7050 --tls --cafile $ORDERER_CA -C $CHANNEL_NAME -n mycc -l node -v 1.0 -c '{"Args":["init","a", "100", "b","200"]}' -P "AND ('Org1MSP.peer','Org2MSP.peer')"
-        exitIfError
         echo "chaincode is instantiated on peer${peer}.org${org} on channel '$CHANNEL_NAME'"
         echo
     done
@@ -201,7 +195,6 @@ chaincodeQuery() {
         setGlobals $peer $org
 
         peer chaincode query -C $CHANNEL_NAME -n mycc -c '{"Args":["query","a"]}'
-        exitIfError
         echo "===================== Query successful on peer${PEER}.org${ORG} on channel '$CHANNEL_NAME' ===================== "
         echo
     done
@@ -227,7 +220,6 @@ chaincodeQuery() {
         setGlobals $peer $org
 
         peer chaincode query -C $CHANNEL_NAME -n mycc -c '{"Args":["query","a"]}'
-        exitIfError
         echo "===================== Query successful on peer${PEER}.org${ORG} on channel '$CHANNEL_NAME' ===================== "
         echo
     done

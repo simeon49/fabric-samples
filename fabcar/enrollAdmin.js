@@ -23,7 +23,9 @@ async function doEnrollAdmin(crypto_suite) {
         verify: false
     };
     // be sure to change the http to https when the CA is running TLS enabled
-    var fabric_ca_client = new Fabric_CA_Client('http://47.104.201.221:7054', tlsOptions, 'ca.example.com', crypto_suite);
+    // 注意: http/https: 由 docker-compose 中的 FABRIC_CA_SERVER_TLS_ENABLED 决定.
+    //      caName: 由 docker-compose 中的 FABRIC_CA_SERVER_CA_NAME 决定
+    var fabric_ca_client = new Fabric_CA_Client('https://47.104.201.221:7054', tlsOptions, 'ca-org1', crypto_suite);
     try {
         var enrollment = await fabric_ca_client.enroll({
             enrollmentID: 'admin',

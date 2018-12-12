@@ -12,12 +12,25 @@ var Fabric_Client = require('fabric-client');
 var path = require('path');
 var util = require('util');
 var os = require('os');
+var fs = require('fs');
 
 async function query() {
 	var fabric_client = new Fabric_Client();
 
 	// setup the fabric network
 	var channel = fabric_client.newChannel('mychannel');
+	// example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
+	// let serverCert = fs.readFileSync(path.join(__dirname, './crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem'));
+	// let serverCert = fs.readFileSync(path.join(__dirname, './crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt'));
+	// let clientKey = fs.readFileSync(path.join(__dirname, './crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/server.key'));
+	// let clientCert = fs.readFileSync(path.join(__dirname, './crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/server.crt'));
+
+
+	// var peer = fabric_client.newPeer('grpcs://47.104.201.221:7051', {
+	// 	pem: Buffer.from(serverCert).toString(),
+	// 	'clientKey': Buffer.from(clientKey).toString(),
+	// 	'clientCert': Buffer.from(clientCert).toString(),
+	// });
 	var peer = fabric_client.newPeer('grpc://47.104.201.221:7051');
 	channel.addPeer(peer);
 

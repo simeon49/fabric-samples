@@ -37,7 +37,7 @@ async function registerUser() {
         crypto_suite.setCryptoKeyStore(crypto_store);
         fabric_client.setCryptoSuite(crypto_suite);
         // be sure to change the http to https when the CA is running TLS enabled
-        fabric_ca_client = new Fabric_CA_Client('http://47.104.201.221:7054', null, '', crypto_suite);
+        fabric_ca_client = new Fabric_CA_Client('https://47.104.201.221:7054', null, '', crypto_suite);
 
         // first check to see if the admin is already enrolled
         var user_from_store = await fabric_client.getUserContext('admin', true);
