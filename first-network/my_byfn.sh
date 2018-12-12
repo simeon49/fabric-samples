@@ -156,7 +156,7 @@ updateAnchorPeers() {
 }
 updateAnchorPeers
 
-# 安装chaincode(每一个锚节点都要执行一次)
+# 安装chaincode
 installChaincode() {
     LANGUAGE="golang"
     CC_SRC_PATH="github.com/chaincode/chaincode_example02/go/"
@@ -165,6 +165,7 @@ installChaincode() {
         setGlobals $peer $org
         VERSION=${3:-1.0}
         peer chaincode install -n mycc -v ${VERSION} -l ${LANGUAGE} -p ${CC_SRC_PATH}
+        # peer chaincode install -n mycc -v 1.0 -l node -p /opt/gopath/src/github.com/chaincode/chaincode_example02/node/
         exitIfError
         echo "chaincode is installed on peer${peer}.org${org}"
         echo
@@ -179,8 +180,12 @@ instantiateChaincode() {
         peer=0
         setGlobals $peer $org
         VERSION=${3:-1.0}
+        # -P: 指定背书策略
+        #       "AND ('Org1MSP.peer','Org2MSP.peer')": 交易必须有 属于Org1和Org2(两个节点)进行签名
+        #       "OR ('Org1MSP.peer','Org2MSP.peer')": 交易必须有 属于Org1或Org2(一个节点)进行签名
         # peer chaincode instantiate -o orderer.example.com:7050 -C $CHANNEL_NAME -n mycc -l ${LANGUAGE} -v ${VERSION} -c '{"Args":["init","a","100","b","200"]}' -P "AND ('Org1MSP.peer','Org2MSP.peer')"
-        peer chaincode instantiate -o orderer.example.com:7050 --tls true --cafile $ORDERER_CA -C $CHANNEL_NAME -n mycc -l ${LANGUAGE} -v 1.0 -c '{"Args":["init","a","100","b","200"]}' -P "AND ('Org1MSP.peer','Org2MSP.peer')"
+        peer chaincode instantiate -o orderer.example.com:7050 --tls --cafile $ORDERER_CA -C $CHANNEL_NAME -n mycc -l ${LANGUAGE} -v 1.0 -c '{"Args":["init","a","100","b","200"]}' -P "AND ('Org1MSP.peer','Org2MSP.peer')"
+        # peer chaincode instantiate -o orderer.example.com:7050 --tls --cafile $ORDERER_CA -C $CHANNEL_NAME -n mycc -l node -v 1.0 -c '{"Args":["init","a", "100", "b","200"]}' -P "AND ('Org1MSP.peer','Org2MSP.peer')"
         exitIfError
         echo "chaincode is instantiated on peer${peer}.org${org} on channel '$CHANNEL_NAME'"
         echo
@@ -188,6 +193,32 @@ instantiateChaincode() {
 }
 instantiateChaincode
 
+
+# 做一次查询
+chaincodeQuery() {
+    for org in 1 2; do
+        peer=0
+        setGlobals $peer $org
+
+        peer chaincode query -C $CHANNEL_NAME -n mycc -c '{"Args":["query","a"]}'
+        exitIfError
+        echo "===================== Query successful on peer${PEER}.org${ORG} on channel '$CHANNEL_NAME' ===================== "
+        echo
+    done
+}
+chaincodeQuery
+
+# 做一次调用(注意: chaincode实例的策略是  "AND ('Org1MSP.peer','Org2MSP.peer')" 需要至少两个节点的背书认可)
+chaincodeInvoke() {
+    CORE_PEER01_ADDRESS=peer0.org1.example.com:7051
+    CORE_PEER01_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
+
+    CORE_PEER02_ADDRESS=peer0.org2.example.com:7051
+    CORE_PEER02_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
+
+    peer chaincode invoke -o orderer.example.com:7050 --tls --cafile $ORDERER_CA -C $CHANNEL_NAME -n mycc --peerAddresses $CORE_PEER01_ADDRESS --tlsRootCertFiles $CORE_PEER01_TLS_ROOTCERT_FILE --peerAddresses $CORE_PEER02_ADDRESS --tlsRootCertFiles $CORE_PEER02_TLS_ROOTCERT_FILE -c '{"Args":["invoke","a","b","10"]}'
+}
+chaincodeInvoke
 
 # 做一次查询
 chaincodeQuery() {
