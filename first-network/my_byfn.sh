@@ -62,9 +62,36 @@ docker-compose docker-compose-couch.yaml up -d # 使用couchdb
 
 
 # ======================== 关闭网络 ========================
-docker-compose -f docker-compose-cli.yaml -f docker-compose-e2e.yaml -f docker-compose-couch.yaml down
-# 如果需要清空所有数据 参考: ./byfn.sh down  (关闭容器, 删除所有的卷, 删除所有前面步骤生成的配置文件)
+docker-compose -f docker-compose-cli.yaml -f docker-compose-e2e.yaml -f docker-compose-couch.yaml down --remove-orphans
+# 如果需要清空所有数据 参考: ./byfn.sh down  (删除容器, 删除所有的卷, 删除所有前面步骤生成的配置文件)
+shutdownAndPure() {
+    # 删除容器,删除对应的卷,删除孤儿容器
+    docker-compose -f docker-compose-cli.yaml -f docker-compose-e2e.yaml -f docker-compose-couch.yaml down --volumes --remove-orphans
 
+    # 删除chaincode 容器(注意该容器在上面的方法中无法删除)
+    CONTAINER_IDS=$(docker ps -a | awk '($2 ~ /dev-peer.*.mycc.*/) {print $1}')
+    if [ -z "$CONTAINER_IDS" -o "$CONTAINER_IDS" -eq " " ]; then
+        echo "---- No containers available for deletion ----"
+    else
+        docker rm -f $CONTAINER_IDS
+    fi
+
+    # 删除生成的chaincode 镜像
+    DOCKER_IMAGE_IDS=$(docker images | awk '($1 ~ /dev-peer.*.mycc.*/) {print $3}')
+    if [ -z "$DOCKER_IMAGE_IDS" -o "$DOCKER_IMAGE_IDS" -eq " " ]; then
+        echo "---- No images available for deletion ----"
+    else
+        docker rmi -f $DOCKER_IMAGE_IDS
+    fi
+
+    # 删除所有配置文件
+    rm -rf channel-artifacts/*.block channel-artifacts/*.tx crypto-config ./org3-artifacts/crypto-config/ channel-artifacts/org3.json
+
+    # 删除 docker-compose-e2e.yaml
+    rm -f docker-compose-e2e.yaml
+}
+# 谨慎使用, 该命令将进行彻底的清空
+# shutdownAndPure
 
 
 docker exec -it cli bash

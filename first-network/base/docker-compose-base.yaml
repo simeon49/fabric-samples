@@ -29,6 +29,7 @@ services:
     - ../channel-artifacts/genesis.block:/var/hyperledger/orderer/orderer.genesis.block
     - ../crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/msp:/var/hyperledger/orderer/msp
     - ../crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/:/var/hyperledger/orderer/tls
+    # 如果需要持久化储存 /var/hyperledger/production/orderer 则需要将一个目录挂载到该处, 不然 docker-compose down --volumes 或 docker rm -fv 时,将会删掉这些内容 "/var/lib/docker/volumes"
     - orderer.example.com:/var/hyperledger/production/orderer
     ports:
       - 7050:7050
