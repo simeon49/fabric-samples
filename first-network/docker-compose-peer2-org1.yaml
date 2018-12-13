@@ -2,6 +2,8 @@
 
 version: '2'
 
+volumes:
+  peer2.org1.example.com:
 
 networks:
   byfn:
