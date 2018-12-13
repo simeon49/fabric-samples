@@ -3,13 +3,19 @@
 version: '2'
 
 volumes:
+  orderer.example.com:
+  peer0.org1.example.com:
+  peer1.org1.example.com:
   peer2.org1.example.com:
+  peer0.org2.example.com:
+  peer1.org2.example.com:
 
 networks:
   byfn:
 
 services:
   peer2.org1.example.com:
+    container_name: peer2.org1.example.com
     image: hyperledger/fabric-peer:latest
     environment:
       - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
