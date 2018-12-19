@@ -150,6 +150,8 @@ setGlobals() {
 # 创建channel
 createChannel() {
     peer channel create -o orderer.example.com:7050 -c $CHANNEL_NAME -f ./channel-artifacts/channel.tx --tls true --cafile $ORDERER_CA
+    # 上面创建的mychannel 的配置信息 mychannel.block 可以通过下面的命令获取
+    # peer channel fetch config config_block.pb -o orderer.example.com:7050 -c $CHANNEL_NAME --tls --cafile $ORDERER_CA
 }
 createChannel
 
@@ -168,6 +170,7 @@ joinChannel() {
 joinChannel
 
 # Anchor peers updated for org 'Org1MSP' on channel 'mychannel'(每一个锚节点都要执行一次)
+# 这将改变通道的配置信息(增加新的block)
 updateAnchorPeers() {
     for org in 1 2; do
         peer=0
